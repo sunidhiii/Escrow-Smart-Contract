@@ -1,0 +1,102 @@
+pragma solidity ^0.6.0;
+
+contract Escrow {
+
+    //Defining all members.
+    address payable public buyer1;
+    address public seller1;
+    address payable public buyer2;
+    address public seller2;
+    
+    //Amount in Escrow
+    uint256 public escrow = 0;
+    
+    //For calculating balances of all the members.
+    mapping(address => uint256) balanceOf;
+    
+    //For defining each items of both the sellers.
+    struct SellerOffer
+    {
+        uint256 coffee ;
+        uint256 tea ;
+        uint256 cake ;
+        uint256 tshirt ;
+        uint256 shorts ;
+        uint256 hoody ;
+    }
+    
+    //Mapping the Offer prize with each seller.
+    mapping(address => SellerOffer) public sellerOffer;
+    
+    //Triggering events.
+    event OrderPlaced(address indexed _buyer,uint256 _amount);
+    
+    event AmountDeposited(address indexed _to,uint256 _amount);
+    
+    event DeliveryCompleted(address indexed _seller,uint256 _amount);
+    
+    event ComplainRegistered(address indexed _by,uint256 _amount);
+    
+    
+    //For allowing only buyers to place orders.
+    modifier onlyBuyer() {
+        require(msg.sender == buyer1 || msg.sender == buyer2 , "Only buyer1 or buyer2 can call this method");
+        _;
+    }
+    
+    //Initializing all variables.
+    constructor(address payable _buyer1, address _seller1, address payable _buyer2, address _seller2) public {
+        buyer1=_buyer1;
+        seller1= _seller1;
+        buyer2= _buyer2;
+        seller2= _seller2;
+        
+        balanceOf[_buyer1]=20;
+        balanceOf[_buyer2]=40;
+        
+        sellerOffer[_seller1].coffee=3;
+        sellerOffer[_seller1].tea=3;
+        sellerOffer[_seller1].cake=3;
+        sellerOffer[_seller2].tshirt=5;
+        sellerOffer[_seller2].shorts=8;
+        sellerOffer[_seller2].hoody=12;
+        
+        balanceOf[_seller1]= 0 ;
+        balanceOf[_seller2]= 0 ;
+    }
+    
+    
+    //Function to order items placed by a seller.
+    function Order(uint _amount) onlyBuyer external payable {
+        require(balanceOf[msg.sender] >= _amount, "Balance of buyer is less than the price of order placed");
+        escrow += _amount;
+        balanceOf[msg.sender] -= _amount;
+        emit OrderPlaced(msg.sender,_amount);
+    }
+    
+    //Function to deposit money.
+    function Deposit(uint _amount) onlyBuyer external payable {
+        balanceOf[msg.sender] += _amount;
+        emit AmountDeposited(msg.sender, _amount);
+    }
+    
+    //Function to declare that delivery is completed,once the item is received.
+    function completeDelivery(address _seller, uint _amount) onlyBuyer external {
+        require(escrow >=_amount, "Escrow doesn't has the amount to be delivered");
+        balanceOf[_seller] += _amount;
+        escrow -= _amount;
+        emit DeliveryCompleted(_seller,_amount);
+    }
+  
+    //Function to complain if the order is not received by the buyer.
+    function Complain(uint _amount) onlyBuyer external {
+        escrow -= _amount;
+        balanceOf[msg.sender] += _amount;
+        emit ComplainRegistered(msg.sender,_amount);
+    }
+    
+    //Function to get balance of the given address.
+    function getBalance(address _name) public view returns (uint balance) {
+        return balance=balanceOf[_name];
+    }
+}
